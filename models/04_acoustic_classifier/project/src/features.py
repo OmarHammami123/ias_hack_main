@@ -3,6 +3,7 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+import soundfile as sf
 import torch
 import torchaudio
 import torchaudio.functional as AF
@@ -32,9 +33,17 @@ class LogMelExtractor:
         )
 
     def load_waveform(self, filepath: str) -> torch.Tensor:
-        wav, sr = torchaudio.load(filepath)
+        # Use soundfile directly for better compatibility
+        wav, sr = sf.read(filepath, dtype='float32')
+        
+        # Convert to tensor and ensure shape is [channels, samples]
+        wav = torch.from_numpy(wav.T) if wav.ndim > 1 else torch.from_numpy(wav).unsqueeze(0)
+        
+        # Convert to mono if stereo
         if wav.shape[0] > 1:
             wav = wav.mean(dim=0, keepdim=True)
+        
+        # Resample if necessary
         if sr != self.sample_rate:
             wav = AF.resample(wav, sr, self.sample_rate)
         return wav

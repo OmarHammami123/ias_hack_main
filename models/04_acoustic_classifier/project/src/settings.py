@@ -4,7 +4,7 @@ from typing import Any, Dict
 # Edit these variables when your dataset is downloaded.
 DATA_ROOT = "../data"
 MACHINE_TYPE = "valve"
-MACHINE_ID = "id_00"
+MACHINE_ID = "all"  # Use "all" to train on all machine IDs, or specify a single ID like "id_00"
 OUTPUT_ROOT = "outputs"
 
 SEED = 1337
@@ -42,7 +42,7 @@ def get_default_config() -> Dict[str, Any]:
         "training": {
             "batch_size": 64,
             "num_workers": 0,
-            "epochs": 100,
+            "epochs": 50,
             "learning_rate": 0.001,
             "weight_decay": 0.0,
             "loss": "mse",

@@ -4,7 +4,7 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
-import torchaudio
+import soundfile as sf
 
 from utils import ensure_dir
 
@@ -23,20 +23,70 @@ def _scan_files(base_dir: Path, ext: str) -> List[Path]:
     return sorted(p for p in base_dir.rglob(f"*{ext}") if p.is_file())
 
 
+def _get_all_machine_ids(data_root: Path, machine_type: str) -> List[str]:
+    """Discover all machine IDs in the dataset directory."""
+    type_dir = data_root / machine_type
+    if not type_dir.exists():
+        raise FileNotFoundError(f"Machine type directory not found: {type_dir}")
+    
+    machine_ids = []
+    for item in sorted(type_dir.iterdir()):
+        if item.is_dir() and (item / "normal").exists():
+            machine_ids.append(item.name)
+    
+    if len(machine_ids) == 0:
+        raise FileNotFoundError(f"No machine IDs found in: {type_dir}")
+    
+    return machine_ids
+
+
 def scan_mimii_style_dataset(data_root: Path, machine_type: str, machine_id: str, audio_ext: str) -> Dict[str, List[Path]]:
-    id_root = data_root / machine_type / machine_id
-    normal_dir = id_root / "normal"
-    abnormal_dir = id_root / "abnormal"
+    """
+    Scan dataset files. If machine_id is "all", scans all available machine IDs.
+    Otherwise, scans only the specified machine_id.
+    """
+    if machine_id.lower() == "all":
+        # Scan all machine IDs
+        all_machine_ids = _get_all_machine_ids(data_root, machine_type)
+        print(f"[data] scanning all machine IDs: {all_machine_ids}")
+        
+        all_normal_files = []
+        all_abnormal_files = []
+        
+        for mid in all_machine_ids:
+            id_root = data_root / machine_type / mid
+            normal_dir = id_root / "normal"
+            abnormal_dir = id_root / "abnormal"
+            
+            normal_files = _scan_files(normal_dir, audio_ext)
+            abnormal_files = _scan_files(abnormal_dir, audio_ext)
+            
+            all_normal_files.extend(normal_files)
+            all_abnormal_files.extend(abnormal_files)
+            
+            print(f"[data]   {mid}: {len(normal_files)} normal, {len(abnormal_files)} abnormal")
+        
+        if len(all_normal_files) == 0:
+            raise FileNotFoundError(f"No normal files found across all machine IDs in {machine_type}")
+        if len(all_abnormal_files) == 0:
+            raise FileNotFoundError(f"No abnormal files found across all machine IDs in {machine_type}")
+        
+        return {"normal": all_normal_files, "abnormal": all_abnormal_files}
+    else:
+        # Scan single machine ID
+        id_root = data_root / machine_type / machine_id
+        normal_dir = id_root / "normal"
+        abnormal_dir = id_root / "abnormal"
 
-    normal_files = _scan_files(normal_dir, audio_ext)
-    abnormal_files = _scan_files(abnormal_dir, audio_ext)
+        normal_files = _scan_files(normal_dir, audio_ext)
+        abnormal_files = _scan_files(abnormal_dir, audio_ext)
 
-    if len(normal_files) == 0:
-        raise FileNotFoundError(f"No normal files found in: {normal_dir}")
-    if len(abnormal_files) == 0:
-        raise FileNotFoundError(f"No abnormal files found in: {abnormal_dir}")
+        if len(normal_files) == 0:
+            raise FileNotFoundError(f"No normal files found in: {normal_dir}")
+        if len(abnormal_files) == 0:
+            raise FileNotFoundError(f"No abnormal files found in: {abnormal_dir}")
 
-    return {"normal": normal_files, "abnormal": abnormal_files}
+        return {"normal": normal_files, "abnormal": abnormal_files}
 
 
 def _to_manifest_df(filepaths: List[Path], label: str) -> pd.DataFrame:
@@ -61,10 +111,12 @@ def _assert_no_overlap(named_splits: Dict[str, pd.DataFrame]) -> None:
 def _sanity_check_audio(manifest_df: pd.DataFrame) -> List[int]:
     sample_rates = []
     for fpath in manifest_df["filepath"].tolist():
-        info = torchaudio.info(fpath)
-        if info.num_frames <= 0:
+        # Use soundfile directly for better compatibility
+        info = sf.info(fpath)
+        
+        if info.frames <= 0:
             raise ValueError(f"Empty audio file detected: {fpath}")
-        sample_rates.append(info.sample_rate)
+        sample_rates.append(info.samplerate)
     return sample_rates
 
 

@@ -1,0 +1,6 @@
+{
+  "threshold": 0.25514793694019317,
+  "threshold_percentile": 95.0,
+  "aggregation": "p95",
+  "checkpoint": "C:\\Users\\rayen\\ias_hack_main\\models\\04_acoustic_classifier\\project\\outputs\\checkpoints\\best.pt"
+}
