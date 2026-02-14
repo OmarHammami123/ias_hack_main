@@ -27,6 +27,10 @@ ias_hack_main/
 ├── notebooks/                   # Jupyter notebooks for experimentation
 ├── dashboard/                   # Streamlit dashboard
 │   └── app.py                   # Main dashboard application
+├── Conceptions/                 # Hardware design and implementation
+│   ├── codes/                   # ESP32 sensor code (BME280, INMP441)
+│   ├── Conception Electrique/   # Circuit designs and schematics
+│   └── Conception_3D/           # 3D CAD models for sensor hardware
 ├── utils/                       # Shared utilities
 │   ├── config.py                # Configuration settings
 │   └── helpers.py               # Helper functions
