@@ -1,0 +1,45 @@
+seed: 1337
+
+paths:
+  data_root: "../data"
+  machine_type: "valve"
+  machine_id: "id_00"
+  output_root: "outputs"
+  manifests_dirname: "manifests"
+  checkpoints_dirname: "checkpoints"
+  logs_dirname: "logs"
+  eval_dirname: "eval"
+
+data:
+  audio_ext: ".wav"
+  train_ratio: 0.8
+  val_ratio: 0.1
+  test_ratio: 0.1
+  force_regenerate_manifests: false
+
+features:
+  sample_rate: 16000
+  n_fft: 1024
+  hop_length: 512
+  n_mels: 64
+  patch_frames: 64
+  patch_hop_frames: 32
+  eps: 1.0e-10
+
+training:
+  batch_size: 64
+  num_workers: 0
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0
+  loss: "mse"  # mse | mae
+  early_stopping_patience: 12
+  min_delta: 1.0e-5
+  device: "auto"  # auto | cpu | cuda
+
+inference:
+  aggregation: "mean"  # mean | p95
+  threshold_percentile: 99.0
+
+evaluation:
+  enable_supervised_threshold_tuning: false
