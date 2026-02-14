@@ -11,8 +11,8 @@ from pressure drop and flow rate measurements.
 
 INPUTS:
 - Pressure drop (PSI)
-- Flow rate deviation (CFM)
-- Optional: Temperature, pipe characteristics
+- Humidity change (%)
+- Temperature (°C)
 
 OUTPUTS:
 - Estimated leak diameter (mm)
@@ -53,7 +53,7 @@ class LeakSizeEstimator:
             self.model = Ridge(alpha=1.0)
         
         self.scaler = StandardScaler()
-        self.feature_columns = ['pressure_drop', 'flow_deviation', 'temperature_c']
+        self.feature_columns = ['pressure_drop', 'humidity_change', 'temperature_c']
         
     def create_training_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -66,15 +66,20 @@ class LeakSizeEstimator:
         # Filter to anomalies only
         leaks = df[df['is_anomaly']].copy()
         
-        # Estimate leak size based on pressure drop
-        # Physics: larger leak → more pressure drop
-        # Rough approximation: 1mm ≈ 5 PSI drop
-        
-        # TODO: Improve this with actual orifice flow equations:
+        # Estimate leak size based on pressure drop and humidity change
+        # Physics: larger leak → more pressure drop + higher humidity change
+        # Rough approximation based on orifice flow equations:
         # Q = Cd * A * sqrt(2 * ΔP / ρ)
-        # where Q = flow rate, A = area, ΔP = pressure drop, ρ = density
+        # Combined with humidity as indicator of leak severity
         
-        leaks['leak_size_mm'] = leaks['pressure_drop'] / 5 + np.random.normal(0, 0.3, len(leaks))
+        # Pressure contribution (primary indicator)
+        pressure_component = leaks['pressure_drop'] / 5.0
+        
+        # Humidity contribution (secondary indicator, scaled down)
+        humidity_component = leaks['humidity_change'] / 3.0
+        
+        # Combined estimate with noise
+        leaks['leak_size_mm'] = (pressure_component + humidity_component) / 2 + np.random.normal(0, 0.3, len(leaks))
         leaks['leak_size_mm'] = leaks['leak_size_mm'].clip(0.5, 10)  # Physical limits
         
         return leaks
@@ -171,7 +176,7 @@ class LeakSizeEstimator:
         
         results = pd.DataFrame({
             'leak_size_mm': leak_sizes,
-            'annual_cost_usd': annual_costs,
+            'annual_cost_tnd': annual_costs,
         })
         
         return results
@@ -237,7 +242,7 @@ def main():
     
     sample_data = pd.DataFrame({
         'pressure_drop': [3, 8, 15, 25],
-        'flow_deviation': [40, 100, 180, 280],
+        'humidity_change': [2, 6, 12, 18],
         'temperature_c': [22, 23, 22, 24],
     })
     
@@ -246,7 +251,7 @@ def main():
     for i, row in predictions.iterrows():
         print(f"\nLeak {i+1}:")
         print(f"  Estimated size: {row['leak_size_mm']:.2f} mm")
-        print(f"  Annual cost: ${row['annual_cost_usd']:,.2f}")
+        print(f"  Annual cost: {row['annual_cost_tnd']:,.2f} TND")
     
     print("\n" + "=" * 60)
     print("✅ MODEL 03 COMPLETE!")

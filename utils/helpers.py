@@ -18,7 +18,7 @@ def calculate_leak_cost(leak_size_mm: float, hours_per_year: int = 8760) -> floa
         hours_per_year: Operating hours per year (default: 24/7)
     
     Returns:
-        Annual cost in dollars
+        Annual cost in Tunisian Dinars (TND)
     """
     from utils.config import COST_CONFIG
     

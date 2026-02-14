@@ -19,7 +19,7 @@ Build an **Isolation Forest** model to detect anomalous sensor readings that may
 ## 📥 Inputs
 
 - `pressure_psi` - Pressure reading in PSI
-- `flow_rate_cfm` - Flow rate in cubic feet per minute
+- `humidity_percent` - Humidity reading in percentage (0-100%)
 - `temperature_c` - Temperature in Celsius
 - Optional: Derived features (rolling averages, rate of change, etc.)
 
@@ -69,7 +69,7 @@ The current implementation uses basic features. **Bonus points** if you add:
 2. **Rate of Change**
    ```python
    df['pressure_derivative'] = df['pressure_psi'].diff()
-   df['flow_derivative'] = df['flow_rate_cfm'].diff()
+   df['humidity_derivative'] = df['humidity_percent'].diff()
    ```
 
 3. **Time-Based Features**

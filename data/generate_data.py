@@ -37,8 +37,8 @@ class SyntheticDataGenerator:
         # Time range (1 sample per second)
         timestamps = pd.date_range(
             start=self.start_date,
-            periods=self.num_days * 24 * 60 * 60,  # seconds in num_days
-            freq='1S'
+            periods=int(self.num_days * 24 * 60 * 60),  # Convert to integer
+            freq='1s'  # Use lowercase 's' instead of deprecated 'S'
         )
         
         data = []
@@ -63,34 +63,35 @@ class SyntheticDataGenerator:
                     seasonal_factor = 1.0 + 0.1 * np.sin(2 * np.pi * (hour - 6) / 24)
                     
                     base_pressure = SENSOR_CONFIG["normal_pressure_psi"] * seasonal_factor
-                    base_flow = SENSOR_CONFIG["normal_flow_cfm"] * seasonal_factor
+                    base_humidity = SENSOR_CONFIG["normal_humidity_percent"] * (1.0 - 0.05 * np.sin(2 * np.pi * (hour - 6) / 24))  # Inverse relationship with pressure
                     
                     # Add leak effect
                     if idx >= leak_start_idx:
-                        # Leak causes pressure drop and increased flow
+                        # Leak causes pressure drop and humidity changes
                         leak_severity = np.random.choice(['small', 'medium', 'large'], p=[0.6, 0.3, 0.1])
                         
                         if leak_severity == 'small':
                             pressure_drop = np.random.uniform(2, 5)
-                            flow_increase = np.random.uniform(20, 50)
+                            humidity_change = np.random.uniform(-5, -2)  # Leak can affect local humidity
                         elif leak_severity == 'medium':
                             pressure_drop = np.random.uniform(5, 15)
-                            flow_increase = np.random.uniform(50, 150)
+                            humidity_change = np.random.uniform(-10, -5)
                         else:  # large
                             pressure_drop = np.random.uniform(15, 30)
-                            flow_increase = np.random.uniform(150, 300)
+                            humidity_change = np.random.uniform(-15, -10)
                         
                         pressure = base_pressure - pressure_drop
-                        flow = base_flow + flow_increase
+                        humidity = max(0, min(100, base_humidity + humidity_change))  # Clamp to 0-100%
                         is_anomaly = True
                     else:
                         pressure = base_pressure
-                        flow = base_flow
+                        humidity = base_humidity
                         is_anomaly = False
                     
                     # Add noise
                     pressure = add_noise(pressure, noise_level=0.02)
-                    flow = add_noise(flow, noise_level=0.02)
+                    humidity = add_noise(humidity, noise_level=0.02)
+                    humidity = max(0, min(100, humidity))  # Ensure within valid range
                     
                     # Temperature (ambient variations)
                     temperature = 20 + 5 * np.sin(2 * np.pi * hour / 24) + np.random.normal(0, 1)
@@ -100,7 +101,7 @@ class SyntheticDataGenerator:
                         'sensor_id': sensor_id,
                         'zone': zone,
                         'pressure_psi': round(pressure, 2),
-                        'flow_rate_cfm': round(flow, 2),
+                        'humidity_percent': round(humidity, 2),
                         'temperature_c': round(temperature, 2),
                         'is_anomaly': is_anomaly,
                     })
@@ -114,8 +115,14 @@ class SyntheticDataGenerator:
     def generate_acoustic_data(self, pressure_data: pd.DataFrame) -> pd.DataFrame:
         """Generate acoustic sensor data correlated with pressure anomalies."""
         
-        # Get unique timestamps and zones from pressure data
-        timestamps = pressure_data['timestamp'].unique()
+        print("🔊 Generating acoustic sensor data...")
+        
+        # Create a fast lookup: group by zone and timestamp, check if any anomaly
+        # Sample every 10 seconds for acoustic data
+        acoustic_sample = pressure_data[::10].copy()
+        leak_lookup = acoustic_sample.groupby(['zone', 'timestamp'])['is_anomaly'].any().to_dict()
+        
+        timestamps = acoustic_sample['timestamp'].unique()
         
         data = []
         
@@ -123,14 +130,9 @@ class SyntheticDataGenerator:
             for sensor_idx in range(1, SENSOR_CONFIG["acoustic_sensors_per_zone"] + 1):
                 sensor_id = generate_sensor_id(zone, 'A', sensor_idx)
                 
-                # Sample every 10 seconds (acoustic sampling is less frequent)
-                for ts in timestamps[::10]:
-                    # Check if there's a leak in this zone at this time
-                    zone_pressure_data = pressure_data[
-                        (pressure_data['zone'] == zone) & 
-                        (pressure_data['timestamp'] == ts)
-                    ]
-                    has_leak = zone_pressure_data['is_anomaly'].any()
+                for ts in timestamps:
+                    # Fast lookup instead of filtering dataframe
+                    has_leak = leak_lookup.get((zone, ts), False)
                     
                     if has_leak:
                         # Leak signature: high energy in specific frequency bands
@@ -234,37 +236,34 @@ class SyntheticDataGenerator:
         
         return df
     
-    def save_data(self, pressure_df: pd.DataFrame, acoustic_df: pd.DataFrame, metadata_df: pd.DataFrame):
+    def save_data(self, pressure_df: pd.DataFrame, metadata_df: pd.DataFrame):
         """Save generated data to CSV files."""
         
         RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
         
         pressure_file = RAW_DATA_DIR / "pressure_sensor_data.csv"
-        acoustic_file = RAW_DATA_DIR / "acoustic_sensor_data.csv"
         metadata_file = RAW_DATA_DIR / "sensor_metadata.csv"
         
         pressure_df.to_csv(pressure_file, index=False)
-        acoustic_df.to_csv(acoustic_file, index=False)
         metadata_df.to_csv(metadata_file, index=False)
         
         print(f"\n📁 Data saved to:")
         print(f"   {pressure_file}")
-        print(f"   {acoustic_file}")
         print(f"   {metadata_file}")
     
     def generate_all(self):
         """Generate all synthetic data."""
         print(f"🏭 Generating synthetic sensor data for {self.num_days} days...\n")
         
-        # Generate data
+        # Generate data (skipping acoustic - already have dataset)
         pressure_df = self.generate_pressure_data()
-        acoustic_df = self.generate_acoustic_data(pressure_df)
         metadata_df = self.generate_metadata()
         
         # Save to files
-        self.save_data(pressure_df, acoustic_df, metadata_df)
+        self.save_data(pressure_df, metadata_df)
         
         print("\n✅ Data generation complete!")
+        print(f"\nNote: Acoustic data skipped - using existing dataset")
         print(f"\nNext steps:")
         print(f"1. Explore the data: data/raw/*.csv")
         print(f"2. Train models: python models/01_isolation_forest/train.py")

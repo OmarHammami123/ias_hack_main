@@ -23,7 +23,7 @@ SENSOR_CONFIG = {
     "pressure_sensors_per_zone": 5,
     "acoustic_sensors_per_zone": 2,
     "normal_pressure_psi": 125,
-    "normal_flow_cfm": 500,
+    "normal_humidity_percent": 45,  # Normal ambient humidity
     "sampling_rate_hz": 1,  # 1 sample per second
 }
 
@@ -38,8 +38,8 @@ LEAK_CONFIG = {
 # Model Configuration
 MODEL_CONFIG = {
     "isolation_forest": {
-        "contamination": 0.1,  # Expected proportion of outliers
-        "n_estimators": 100,
+        "contamination": 0.16,  # Match actual anomaly rate (15.86%)
+        "n_estimators": 200,  # More trees = better accuracy
         "random_state": 42,
     },
     "severity_classifier": {
@@ -75,7 +75,7 @@ MODEL_CONFIG = {
 
 # Cost Calculation
 COST_CONFIG = {
-    "electricity_rate_per_kwh": 0.12,  # $0.12 per kWh
+    "electricity_rate_per_kwh": 0.37,  # 0.37 TND per kWh (converted from $0.12 at 1 USD = 3.1 TND)
     "compressor_efficiency": 0.75,  # 75% efficient
     "hours_per_year": 8760,  # 24/7 operation
     "leak_size_to_cfm": {  # leak diameter (mm) -> CFM loss
@@ -100,8 +100,8 @@ DASHBOARD_CONFIG = {
 
 # Data Generation
 DATA_GENERATION_CONFIG = {
-    "num_days": 7,  # Generate 7 days of data
+    "num_days": 0.25,  # Generate 6 hours of data (~432K rows - fast training)
     "sensors_per_zone": 5,
-    "leak_injection_probability": 0.05,
+    "leak_injection_probability": 0.25,  # 25% - ensures multiple leaks for training
     "noise_level": 0.02,  # 2% noise
 }
