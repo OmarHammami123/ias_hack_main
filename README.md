@@ -55,7 +55,7 @@ ias_hack_main/
 ├── IOT_Nodes/                       # IoT sensor integration scripts
 │   ├── BMP180 OUTPUT_to_python.py   # BMP180 pressure/temperature sensor interface
 │   └── Soundwaves to python.py      # Acoustic sensor data processing
-├── IOT_Simulations/                 # Hardware sensor simulations
+├── IOT_Wokwi_Simulations/           # Hardware sensor simulations (Wokwi)
 │   ├── BMP180_Simulation/           # BMP180 sensor simulator
 │   └── INMP441_Simulation/          # INMP441 microphone simulator
 ├── Conceptions/                     # Hardware design files
