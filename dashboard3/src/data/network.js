@@ -1,40 +1,76 @@
+// Pipe network topology with sensor metadata per pipe.
+
 const nodes = {
-  Compressor: { x: 140, y: 400 },
-  ManifoldA: { x: 360, y: 280 },
-  ManifoldB: { x: 360, y: 520 },
-  ZoneA1: { x: 640, y: 200 },
-  ZoneA2: { x: 640, y: 360 },
-  ZoneB1: { x: 640, y: 520 },
-  ZoneB2: { x: 640, y: 680 },
-  Return: { x: 980, y: 400 },
+  Compressor: { x: 100, y: 400, label: 'Compressor' },
+  ManifoldA:  { x: 340, y: 240, label: 'Manifold A' },
+  ManifoldB:  { x: 340, y: 560, label: 'Manifold B' },
+  ZoneA1:     { x: 620, y: 140, label: 'Zone A-1' },
+  ZoneA2:     { x: 620, y: 340, label: 'Zone A-2' },
+  ZoneB1:     { x: 620, y: 480, label: 'Zone B-1' },
+  ZoneB2:     { x: 620, y: 660, label: 'Zone B-2' },
+  Collector:  { x: 870, y: 400, label: 'Collector' },
+  Return:     { x: 1080, y: 400, label: 'Return' },
 };
 
 const pipes = [
-  { id: 'Pipe_A0', label: 'Feed A', start: 'Compressor', end: 'ManifoldA' },
-  { id: 'Pipe_B0', label: 'Feed B', start: 'Compressor', end: 'ManifoldB' },
-  { id: 'Pipe_A1', label: 'Line A1', start: 'ManifoldA', end: 'ZoneA1' },
-  { id: 'Pipe_A2', label: 'Line A2', start: 'ManifoldA', end: 'ZoneA2' },
-  { id: 'Pipe_B1', label: 'Line B1', start: 'ManifoldB', end: 'ZoneB1' },
-  { id: 'Pipe_B2', label: 'Line B2', start: 'ManifoldB', end: 'ZoneB2' },
-  { id: 'Pipe_R1', label: 'Return A', start: 'ZoneA2', end: 'Return' },
-  { id: 'Pipe_R2', label: 'Return B', start: 'ZoneB1', end: 'Return' },
+  { id: 'P-001', label: 'Feed A',   start: 'Compressor', end: 'ManifoldA' },
+  { id: 'P-002', label: 'Feed B',   start: 'Compressor', end: 'ManifoldB' },
+  { id: 'P-003', label: 'Line A1',  start: 'ManifoldA',  end: 'ZoneA1' },
+  { id: 'P-004', label: 'Line A2',  start: 'ManifoldA',  end: 'ZoneA2' },
+  { id: 'P-005', label: 'Line B1',  start: 'ManifoldB',  end: 'ZoneB1' },
+  { id: 'P-006', label: 'Line B2',  start: 'ManifoldB',  end: 'ZoneB2' },
+  { id: 'P-007', label: 'Ret A',    start: 'ZoneA1',     end: 'Collector' },
+  { id: 'P-008', label: 'Ret A2',   start: 'ZoneA2',     end: 'Collector' },
+  { id: 'P-009', label: 'Ret B1',   start: 'ZoneB1',     end: 'Collector' },
+  { id: 'P-010', label: 'Main Ret', start: 'Collector',  end: 'Return' },
 ];
 
-const valves = ['Pipe_A1', 'Pipe_B1', 'Pipe_R2'].map((pid) => midpoint(pid));
+const valvePipes = ['P-003', 'P-005', 'P-009', 'P-010'];
+const valves = valvePipes.map((pid) => {
+  const pipe = pipes.find((p) => p.id === pid);
+  const s = nodes[pipe.start];
+  const e = nodes[pipe.end];
+  return { id: `V-${pid}`, x: (s.x + e.x) / 2, y: (s.y + e.y) / 2 };
+});
 
-export const network = {
-  nodes,
-  pipes,
-  valves,
-};
+export const network = { nodes, pipes, valves };
 
-function midpoint(pipeId) {
-  const pipe = pipes.find((p) => p.id === pipeId);
-  const start = nodes[pipe.start];
-  const end = nodes[pipe.end];
+// ---------- sensor simulation helpers ----------
+
+function jitter(range) {
+  return (Math.random() - 0.5) * 2 * range;
+}
+
+/** Normal sensor reading for a pipe */
+function normalReading(pipeIndex) {
+  const basePressure = 120 - pipeIndex * 1.5;
   return {
-    id: pipeId,
-    x: (start.x + end.x) / 2,
-    y: (start.y + end.y) / 2,
+    pressureIn:  +(basePressure + jitter(0.8)).toFixed(2),
+    pressureOut: +(basePressure - 1.2 + jitter(0.6)).toFixed(2),
+    temperature: +(24 + jitter(0.5)).toFixed(2),
+    humidity:    +(42 + jitter(1.5)).toFixed(2),
   };
+}
+
+/** Anomalous sensor reading (simulates leak) */
+function anomalyReading(pipeIndex) {
+  const basePressure = 120 - pipeIndex * 1.5;
+  const drop = 12 + Math.random() * 10;
+  return {
+    pressureIn:  +(basePressure + jitter(1.2)).toFixed(2),
+    pressureOut: +(basePressure - drop + jitter(2)).toFixed(2),
+    temperature: +(28 + jitter(2)).toFixed(2),
+    humidity:    +(55 + jitter(4)).toFixed(2),
+  };
+}
+
+/** Generate one tick of sensor data for every pipe */
+export function generateTick(anomalyPipeIds = new Set()) {
+  const ts = Date.now();
+  const readings = {};
+  pipes.forEach((pipe, idx) => {
+    const fn = anomalyPipeIds.has(pipe.id) ? anomalyReading : normalReading;
+    readings[pipe.id] = { ...fn(idx), ts };
+  });
+  return readings;
 }

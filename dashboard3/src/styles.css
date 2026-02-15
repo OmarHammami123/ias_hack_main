@@ -26,3 +26,9 @@ svg text {
   stroke: rgba(0,0,0,0.35);
   stroke-width: 1;
 }
+
+/* thin scrollbar for pipe-list bar */
+.scrollbar-thin::-webkit-scrollbar { height: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #334155 transparent; }
