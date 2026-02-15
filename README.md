@@ -69,83 +69,242 @@ ias_hack_main/
 └── README.md                        # This file
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start - Running the Live System
 
 > **💡 We use [uv](https://github.com/astral-sh/uv) for lightning-fast dependency management (10-100x faster than pip!)**
 
-### 1. Clone and Setup
+### Prerequisites
+- **Python 3.12+** (required for backend/ML)
+- **Node.js 18+** (required for React dashboard)
+- **Git** (for cloning)
+
+### Step 1: Clone and Setup Python Environment
 ```bash
+# Clone the repository
 git clone https://github.com/OmarHammami123/ias_hack_main.git
 cd ias_hack_main
 
 # Install uv (if not already installed)
 pip install uv
 
-# Sync dependencies (creates venv automatically!)
+# Sync all Python dependencies (creates venv automatically!)
 uv sync
 
-# Activate the virtual environment (Windows PowerShell)
+# Activate the virtual environment
+# Windows PowerShell:
 .venv\Scripts\Activate.ps1
-# Or for Mac/Linux:
+
+# Mac/Linux:
 source .venv/bin/activate
 ```
 
-> **Note:** `uv sync` automatically creates a virtual environment, installs all dependencies from `pyproject.toml`, and locks versions in `uv.lock`!
+> **Note:** `uv sync` automatically creates `.venv/`, installs all dependencies from `pyproject.toml`, and locks versions in `uv.lock`
 
-### 2. Generate Synthetic Data
+---
+
+### Step 2: Generate Training Data & Train ML Model
+
+**Required** - The backend needs the trained Isolation Forest model to detect anomalies!
+
 ```bash
-# Generate 7 days of historical data
+# Generate 7 days of synthetic sensor data (~1.6M readings)
 python data/generate_data.py
+# ⏱️ Takes ~2-3 minutes
+# Output: data/raw/pressure_sensor_data.csv
+
+# Train the Isolation Forest anomaly detection model
+python models/01_isolation_forest/train.py
+# ⏱️ Takes ~30 seconds
+# Output: models/01_isolation_forest/trained_model/isolation_forest.pkl
 ```
 
-**Output:**
-- `data/raw/pressure_sensor_data.csv` - ~1.6M pressure/humidity readings
-- `data/raw/acoustic_sensor_data.csv` - ~160K acoustic frequency readings
-- Anomaly rate: ~16% (realistic leak injection)
+**What happens:**
+- `generate_data.py` creates realistic pipe sensor data with 16% anomaly rate
+- `train.py` creates the ML model used by the backend to detect leaks in real-time
 
-### 3. Train ML Models
+---
+
+### Step 3: Start the Backend WebSocket Server
+
+**Terminal 1** - Keep this running while testing
+
 ```bash
-# Model 01: Isolation Forest (Anomaly Detection)
+# Make sure venv is activated!
+# From project root:
+python -m backend.server
+```
+
+**Expected output:**
+```
+[*] Loading Isolation Forest model...
+[OK] Model loaded
+INFO:     Started server process [12345]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+```
+
+**What it does:**
+- Loads the trained Isolation Forest model
+- Generates live sensor readings every 1 second for 10 pipes (P-001 to P-010)
+- Runs ML inference to detect anomalies in real-time
+- Broadcasts data to connected dashboards via WebSocket on port 8000
+- Automatically injects ~1 anomaly per minute for demonstration
+
+**API Endpoints:**
+- `ws://localhost:8000/ws` - WebSocket connection for real-time data
+- `http://localhost:8000/health` - Health check endpoint
+
+---
+
+### Step 4: Install & Start the React Dashboard
+
+**Terminal 2** - Open a new terminal (keep backend running in Terminal 1!)
+
+```bash
+# Navigate to dashboard folder
+cd dashboard3
+
+# Install Node.js dependencies (first time only)
+npm install
+# ⏱️ Takes ~1 minute
+
+# Start the development server
+npm run dev
+```
+
+**Expected output:**
+```
+  VITE v6.0.5  ready in 450 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+```
+
+---
+
+### Step 5: View the Live System! 🎉
+
+**Open your browser:**  
+👉 **http://localhost:5173**
+
+**What you'll see:**
+1. **Live pipe network visualization** - 10 pipes (P-001 to P-010) with 2.5D styling
+2. **Real-time KPIs** - Pressure, flow, leak probability updated every second
+3. **Anomaly highlighting** - Pipes turn hot red when leaks are detected
+4. **Pressure sparkline** - Live pressure trends with animated cursor
+5. **Acoustic spectrogram** - Simulated frequency analysis grid
+
+**How it works:**
+```
+Backend (Port 8000)          Dashboard (Port 5173)
+┌─────────────────┐          ┌──────────────────┐
+│ Data Generator  │          │   React App      │
+│       ↓         │  WebSocket  │                │
+│ ML Inference    │◄────────►│   Live Charts    │
+│ (Isolation      │          │   Pipe Network   │
+│  Forest)        │          │   KPIs           │
+└─────────────────┘          └──────────────────┘
+   Every 1 second               Updates in real-time
+```
+
+---
+
+### Step 6: Interacting with the System
+
+**Watch for anomalies:**
+- Every ~60 seconds, a random pipe will develop a leak
+- The backend logs: `[!] ANOMALY STARTED: P-003`
+- The dashboard highlights the pipe in red with a pulsing marker
+- After 30 seconds, the leak clears: `[x] ANOMALY CLEARED: P-003`
+
+**Backend terminal shows:**
+```
+[tick] 2026-02-15 14:32:10  clients=1
+[tick] 2026-02-15 14:32:11  clients=1  ANOMALIES: ['P-003', 'P-007']
+[tick] 2026-02-15 14:32:12  clients=1  ANOMALIES: ['P-003', 'P-007']
+```
+
+**Click on pipes** in the dashboard to select and view details!
+
+---
+
+### Troubleshooting
+
+**Backend won't start:**
+```bash
+# Make sure model is trained
 python models/01_isolation_forest/train.py
 
-# Model 02: Severity Classifier (Rule-Based)
-python models/02_severity_classifier/train.py
+# Check if port 8000 is in use
+# Windows PowerShell:
+Get-Process | Where-Object {$_.Path -like "*uvicorn*"}
 
-# Model 03: Leak Size Estimator (Linear Regression)
-python models/03_leak_size_estimator/train.py
-
-# Model 04: Acoustic Classifier (CNN) - Optional
-python models/04_acoustic_classifier/train.py
-
-# Model 05: Predictive Forecast (Prophet) - Optional
-python models/05_predictive_forecast/train.py
+# Kill and restart
+python -m backend.server
 ```
 
-### 4. Run Dashboard
-```bash
-# Standard mode (uses CSV data)
-uv run streamlit run dashboard/app.py
+**Dashboard won't connect:**
+- Verify backend is running (check Terminal 1)
+- Check browser console (F12) for WebSocket errors
+- Ensure URLs match: backend on `:8000`, dashboard on `:5173`
 
-# Or with Python directly
+**No anomalies appearing:**
+- Wait 60 seconds - anomalies are injected randomly
+- Check backend terminal for `[!] ANOMALY STARTED` messages
+- Anomalies last 30 seconds then clear automatically
+
+---
+
+### Alternative: Historical Data Analysis (Streamlit)
+
+If you want to explore static data instead of real-time:
+
+```bash
+# In Terminal 1 (with venv activated):
 streamlit run dashboard/app.py
-```
-🌐 **Open browser:** `http://localhost:8501`
 
-### 5. Real-Time Data Streaming (Optional)
-```bash
-# Stream live data to stdout (JSONL format)
-python data/stream_data.py
-
-# Or pipe to Kafka/MQTT
-python data/stream_data.py | kafka-console-producer --topic sensor-readings
+# Open browser: http://localhost:8501
 ```
+
+This shows historical analysis of the generated CSV data.
 
 ## 🏗️ System Architecture
 
-### ML Pipeline
+### Real-Time System (Current Implementation)
 
 ```
-Raw Sensor Data
+┌─────────────────────────────────────────────────────────────┐
+│                   LIVE LEAK DETECTION SYSTEM                 │
+└─────────────────────────────────────────────────────────────┘
+
+┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
+│  Data Generator  │         │  Backend Server  │         │ React Dashboard  │
+│  (Real-time)     │         │  (FastAPI +      │         │  (Vite + React)  │
+│                  │         │   WebSocket)     │         │                  │
+│  • Simulates 10  │         │                  │         │  • Live pipe     │
+│    pipe sensors  │◄────────│  • ML Inference  │◄────────│    network viz   │
+│  • 1 reading/sec │  WebSocket  (Isolation    │  WebSocket  • Real-time     │
+│  • Auto-inject   │  :8000  │    Forest)       │  :5173  │    KPIs          │
+│    anomalies     │         │  • Broadcasts    │         │  • Anomaly       │
+│                  │         │    updates       │         │    highlighting  │
+└──────────────────┘         └──────────────────┘         └──────────────────┘
+        │                            │                            │
+        ▼                            ▼                            ▼
+   Every 1 second              ML Detection              Updates in real-time
+```
+
+**How it works:**
+1. **Backend** generates live sensor readings (pressure, temp, humidity) for 10 pipes
+2. **Isolation Forest ML** runs inference every second to detect anomalies
+3. **WebSocket** streams data to all connected dashboards
+4. **Dashboard** visualizes the pipe network and highlights leaks in real-time
+
+### ML Pipeline (Training Phase)
+
+```
+Raw Sensor Data (CSV)
        ↓
 ┌──────────────────────────────────────┐
 │  Model 01: Isolation Forest          │
@@ -177,19 +336,27 @@ Raw Sensor Data
 │  - Output: 30-day ahead predictions  │
 └──────────────────────────────────────┘
        ↓
-   Dashboard Visualization
+   Trained Models → Backend Inference
 ```
 
-### Data Flow
+### Data Flow Modes
 
-**Historical Analysis (CSV):**
+**Mode 1: Live Real-Time System** (Recommended for Demo)
 ```
-generate_data.py → pressure_sensor_data.csv → ML Models → Dashboard
+Backend Server ─→ Data Generator ─→ ML Inference ─→ WebSocket ─→ React Dashboard
+   (Port 8000)      (In-memory)      (Real-time)     (Broadcast)    (Port 5173)
 ```
 
-**Real-Time Streaming (JSONL):**
+**Mode 2: Historical Analysis** (Streamlit)
 ```
-stream_data.py → stdout (JSONL) → Kafka/MQTT → Real-time Dashboard
+generate_data.py → pressure_data.csv → Trained Models → Streamlit Dashboard
+                                                            (Port 8501)
+```
+
+**Mode 3: Production-Ready** (Future Integration)
+```
+IoT Sensors → MQTT Broker → Backend → ML Inference → WebSocket → Dashboard
+(ESP32/Arduino) (HiveMQ)    (FastAPI)  (Real-time)   (Broadcast)   (React)
 ```
 
 ## 📊 Data Schema
