@@ -43,7 +43,7 @@ ias_hack_main/
 │   ├── 01_isolation_forest/         # Anomaly detection (Isolation Forest)
 │   ├── 02_severity_classifier/      # Rule-based severity scoring
 │   ├── 03_leak_size_estimator/      # Linear regression for leak size
-│   ├── 04_acoustic_classifier/      # CNN for acoustic leak detection
+│   ├── 04_acoustic_classifier/      # Autoencoder for acoustic leak detection
 │   └── 05_predictive_forecast/      # Prophet/LSTM time-series forecasting
 ├── data/                            # Data generation and streaming
 │   ├── raw/                         # Generated sensor data (CSV)
@@ -52,6 +52,15 @@ ias_hack_main/
 ├── dashboard/                       # Streamlit dashboard
 │   ├── app.py                       # Main dashboard (dark theme, factory maps)
 │   └── README.md                    # Dashboard documentation
+├── IOT_Nodes/                       # IoT sensor integration scripts
+│   ├── BMP180 OUTPUT_to_python.py   # BMP180 pressure/temperature sensor interface
+│   └── Soundwaves to python.py      # Acoustic sensor data processing
+├── IOT_Wokwi_Simulations/           # Hardware sensor simulations (Wokwi)
+│   ├── BMP180_Simulation/           # BMP180 sensor simulator
+│   └── INMP441_Simulation/          # INMP441 microphone simulator
+├── Conceptions/                     # Hardware design files
+│   ├── Conception_3D/               # 3D CAD models (Arduino, sensors, assembly)
+│   └── Conception Electrique/       # Electrical circuit designs
 ├── utils/                           # Shared utilities
 │   ├── config.py                    # Configuration (zones, costs, thresholds)
 │   └── helpers.py                   # Helper functions (cost calc, noise gen)

@@ -42,21 +42,29 @@ data/raw/*.json
 data/processed/*.csv
 data/processed/*.pkl
 
-# Model artifacts
+# Audio dataset files (exclude raw audio)
+models/04_acoustic_classifier/project/data/**/*.wav
+models/04_acoustic_classifier/project/data/**/*.mp3
+models/04_acoustic_classifier/project/data/**/*.flac
+
+# Model artifacts (general exclusion)
 models/**/*.pkl
 models/**/*.h5
-models/**/*.pt
-models/**/*.pth
 models/**/*.joblib
 models/**/*.onnx
 models/**/*.pb
 models/**/*.weights
-models/**/*.json
-models/**/checkpoint*
 models/**/saved_model/
 
-# Training outputs
-models/**/logs/
+# Exception: Keep acoustic classifier trained models and results
+!models/04_acoustic_classifier/project/outputs/
+!models/04_acoustic_classifier/project/outputs/**/*.pt
+!models/04_acoustic_classifier/project/outputs/**/*.pth
+!models/04_acoustic_classifier/project/outputs/**/*.json
+!models/04_acoustic_classifier/project/outputs/**/*.png
+!models/04_acoustic_classifier/project/outputs/**/*.jpg
+
+# Training outputs (general exclusion)
 models/**/plots/
 models/**/reports/
 *.png
@@ -64,6 +72,8 @@ models/**/reports/
 *.jpeg
 !docs/*.png
 !docs/*.jpg
+!models/04_acoustic_classifier/project/outputs/**/*.png
+!models/04_acoustic_classifier/project/outputs/**/*.jpg
 
 # Logs
 *.log

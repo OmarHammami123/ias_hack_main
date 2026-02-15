@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "author": "Elyes",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": -20,
+      "left": -20,
+      "attrs": {}
+    },
+    {
+      "type": "chip-sensor-mic",
+      "id": "sens",
+      "top": -120,
+      "left": 260,
+      "attrs": {
+        "amplitude": "0.70",
+        "toneHz": "380",
+        "selfNoise": "0.02"
+      }
+    },
+    {
+      "type": "chip-noise-mic",
+      "id": "noi",
+      "top": 90,
+      "left": 260,
+      "attrs": {
+        "level": "0.20",
+        "spikiness": "0.15"
+      }
+    }
+  ],
+  "connections": [
+    ["esp:3V3", "sens:VDD", "red", ["h0"]],
+    ["esp:GND.1", "sens:GND", "black", ["h0"]],
+
+    ["esp:3V3", "noi:VDD", "red", ["h0"]],
+    ["esp:GND.2", "noi:GND", "black", ["h0"]],
+
+    ["esp:D26", "sens:SCK", "green", ["h0"]],
+    ["esp:D25", "sens:WS", "blue", ["h0"]],
+    ["esp:D26", "noi:SCK", "green", ["h0"]],
+    ["esp:D25", "noi:WS", "blue", ["h0"]],
+
+    ["sens:SD", "esp:D33", "yellow", ["h0"]],
+    ["noi:SD", "esp:D33", "yellow", ["h0"]],
+
+    ["esp:GND.1", "sens:LR", "black", ["h0"]],
+    ["esp:3V3", "noi:LR", "red", ["h0"]],
+
+    ["esp:TX0", "$serialMonitor:RX", "", []],
+    ["esp:RX0", "$serialMonitor:TX", "", []]
+  ],
+  "serialMonitor": {
+    "display": "plotter",
+    "newline": "lf"
+  },
+  "dependencies": {}
+}
