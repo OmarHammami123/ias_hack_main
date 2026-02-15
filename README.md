@@ -52,6 +52,15 @@ ias_hack_main/
 ├── dashboard/                       # Streamlit dashboard
 │   ├── app.py                       # Main dashboard (dark theme, factory maps)
 │   └── README.md                    # Dashboard documentation
+├── IOT_Nodes/                       # IoT sensor integration scripts
+│   ├── BMP180 OUTPUT_to_python.py   # BMP180 pressure/temperature sensor interface
+│   └── Soundwaves to python.py      # Acoustic sensor data processing
+├── IOT_Simulations/                 # Hardware sensor simulations
+│   ├── BMP180_Simulation/           # BMP180 sensor simulator
+│   └── INMP441_Simulation/          # INMP441 microphone simulator
+├── Conceptions/                     # Hardware design files
+│   ├── Conception_3D/               # 3D CAD models (Arduino, sensors, assembly)
+│   └── Conception Electrique/       # Electrical circuit designs
 ├── utils/                           # Shared utilities
 │   ├── config.py                    # Configuration (zones, costs, thresholds)
 │   └── helpers.py                   # Helper functions (cost calc, noise gen)
