@@ -1,73 +1,99 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { generateTick, network } from '../data/network';
+import { network } from '../data/network';
 
-const HISTORY_SIZE = 60;          // keep last 60 seconds
-const TICK_MS      = 1000;        // 1 tick / second
+const HISTORY_SIZE = 60;          // keep last 60 data points
+const WS_URL       = 'ws://localhost:8000/ws';
+const RECONNECT_MS = 2000;
 
 /**
- * useSensorStream – drives the whole dashboard.
+ * useSensorStream – connects to the Python backend via WebSocket.
+ *
+ * The backend runs:
+ *   data_generator → isolation forest model → WebSocket broadcast
+ *
+ * Each message is JSON:
+ *   { timestamp, readings: { [pipeId]: { pressureIn, pressureOut, temperature, humidity, ts } },
+ *     anomalies: ["P-001", ...], scores: { [pipeId]: float } }
  *
  * Returns:
- *  latest        – { [pipeId]: { pressureIn, pressureOut, temperature, humidity, ts } }
+ *  latest        – latest readings keyed by pipe ID
  *  history       – { [pipeId]: [ ...last 60 readings ] }
- *  anomalyPipes  – Set of pipe IDs currently anomalous
- *  toggleAnomaly – fn(pipeId) to flip anomaly state for demo purposes
+ *  anomalyPipes  – Set of pipe IDs the model flagged as anomalies
+ *  scores        – { [pipeId]: anomaly_score }
+ *  connected     – whether WebSocket is live
  */
 export function useSensorStream() {
-  const [anomalySet, setAnomalySet] = useState(() => new Set());
   const [latest, setLatest]         = useState({});
   const [history, setHistory]       = useState(() => {
     const h = {};
     network.pipes.forEach((p) => (h[p.id] = []));
     return h;
   });
-  const historyRef = useRef(history);
-  historyRef.current = history;
-
-  // toggle anomaly on a pipe (used by the pipe-list / demo controls)
-  const toggleAnomaly = useCallback((pipeId) => {
-    setAnomalySet((prev) => {
-      const next = new Set(prev);
-      next.has(pipeId) ? next.delete(pipeId) : next.add(pipeId);
-      return next;
-    });
-  }, []);
-
-  // random anomaly injection — every ~8 s flip a random pipe for realism
-  const anomalyRef = useRef(anomalySet);
-  anomalyRef.current = anomalySet;
+  const [anomalyPipes, setAnomalyPipes] = useState(() => new Set());
+  const [scores, setScores]             = useState({});
+  const [connected, setConnected]       = useState(false);
+  const wsRef = useRef(null);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      const pipes = network.pipes;
-      const rnd   = pipes[Math.floor(Math.random() * pipes.length)].id;
-      setAnomalySet((prev) => {
-        const next = new Set(prev);
-        // 40 % chance to create, 60 % to clear — keeps ~1-2 active at a time
-        if (next.has(rnd) || Math.random() < 0.6) next.delete(rnd);
-        else next.add(rnd);
-        return next;
-      });
-    }, 8000);
-    return () => clearInterval(id);
-  }, []);
+    let alive = true;
+    let reconnectTimer = null;
 
-  // main ticker
-  useEffect(() => {
-    const id = setInterval(() => {
-      const tick = generateTick(anomalyRef.current);
-      setLatest(tick);
-      setHistory((prev) => {
-        const next = {};
-        for (const pipeId of Object.keys(prev)) {
-          const arr = [...prev[pipeId], tick[pipeId]];
-          next[pipeId] = arr.length > HISTORY_SIZE ? arr.slice(-HISTORY_SIZE) : arr;
+    function connect() {
+      if (!alive) return;
+      const ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('[WS] connected');
+        setConnected(true);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          const { readings, anomalies, scores: sc } = msg;
+
+          setLatest(readings);
+          setAnomalyPipes(new Set(anomalies));
+          setScores(sc ?? {});
+
+          setHistory((prev) => {
+            const next = {};
+            for (const pipeId of Object.keys(prev)) {
+              if (readings[pipeId]) {
+                const arr = [...prev[pipeId], readings[pipeId]];
+                next[pipeId] = arr.length > HISTORY_SIZE ? arr.slice(-HISTORY_SIZE) : arr;
+              } else {
+                next[pipeId] = prev[pipeId];
+              }
+            }
+            return next;
+          });
+        } catch (err) {
+          console.warn('[WS] bad message', err);
         }
-        return next;
-      });
-    }, TICK_MS);
-    return () => clearInterval(id);
+      };
+
+      ws.onclose = () => {
+        console.log('[WS] disconnected, retrying…');
+        setConnected(false);
+        if (alive) reconnectTimer = setTimeout(connect, RECONNECT_MS);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    connect();
+
+    return () => {
+      alive = false;
+      clearTimeout(reconnectTimer);
+      wsRef.current?.close();
+    };
   }, []);
 
-  return { latest, history, anomalyPipes: anomalySet, toggleAnomaly };
+  // toggleAnomaly is kept as no-op for API compat (anomalies come from the model now)
+  const toggleAnomaly = useCallback(() => {}, []);
+
+  return { latest, history, anomalyPipes, scores, connected, toggleAnomaly };
 }

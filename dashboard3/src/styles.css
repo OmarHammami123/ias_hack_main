@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  color: #e5e7eb;
-  background-color: #0a0f1c;
+  color: #d6d3d1;
+  background-color: #050608;
 }
 
 * {
@@ -13,7 +13,7 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
 }
 
 select {
@@ -21,14 +21,73 @@ select {
 }
 
 svg text {
-  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-family: 'JetBrains Mono', 'Sora', monospace;
   paint-order: stroke;
-  stroke: rgba(0,0,0,0.35);
-  stroke-width: 1;
+  stroke: rgba(0,0,0,0.45);
+  stroke-width: 1.5;
 }
 
-/* thin scrollbar for pipe-list bar */
+/* ── Glass card style ── */
+.glass-card {
+  background: linear-gradient(135deg, rgba(12,14,20,0.85), rgba(19,22,31,0.75));
+  border: 1px solid rgba(251,191,36,0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.glass-card-hover {
+  transition: all 0.3s ease;
+}
+.glass-card-hover:hover {
+  border-color: rgba(251,191,36,0.18);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.4), 0 0 20px rgba(251,191,36,0.06), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* ── Animated gradient border ── */
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(251,191,36,0.3), rgba(45,212,191,0.15), rgba(251,191,36,0.1));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── Thin scrollbar ── */
 .scrollbar-thin::-webkit-scrollbar { height: 4px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
-.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #44403c; border-radius: 9999px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #57534e; }
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #44403c transparent; }
+
+/* ── Dot grid background ── */
+.bg-dots {
+  background-image: radial-gradient(rgba(251,191,36,0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ── Pulse ring animation for alerts ── */
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.0); opacity: 0; }
+}
+.pulse-ring {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* ── Score bar animation ── */
+@keyframes score-fill {
+  from { width: 0%; }
+}
+.score-bar {
+  animation: score-fill 0.6s ease-out;
+}
+

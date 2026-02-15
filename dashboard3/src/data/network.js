@@ -43,24 +43,24 @@ function jitter(range) {
 
 /** Normal sensor reading for a pipe */
 function normalReading(pipeIndex) {
-  const basePressure = 120 - pipeIndex * 1.5;
+  const basePressure = 114.9 - pipeIndex * 0.3;
   return {
-    pressureIn:  +(basePressure + jitter(0.8)).toFixed(2),
-    pressureOut: +(basePressure - 1.2 + jitter(0.6)).toFixed(2),
-    temperature: +(24 + jitter(0.5)).toFixed(2),
-    humidity:    +(42 + jitter(1.5)).toFixed(2),
+    pressureIn:  +(basePressure + jitter(1.5)).toFixed(2),
+    pressureOut: +(basePressure - 1.0 + jitter(1.2)).toFixed(2),
+    temperature: +(22.7 + jitter(1.0)).toFixed(2),
+    humidity:    +(45.7 + jitter(1.5)).toFixed(2),
   };
 }
 
 /** Anomalous sensor reading (simulates leak) */
 function anomalyReading(pipeIndex) {
-  const basePressure = 120 - pipeIndex * 1.5;
-  const drop = 12 + Math.random() * 10;
+  const basePressure = 114.9 - pipeIndex * 0.3;
+  const drop = 15 + Math.random() * 10;
   return {
-    pressureIn:  +(basePressure + jitter(1.2)).toFixed(2),
-    pressureOut: +(basePressure - drop + jitter(2)).toFixed(2),
-    temperature: +(28 + jitter(2)).toFixed(2),
-    humidity:    +(55 + jitter(4)).toFixed(2),
+    pressureIn:  +(basePressure + jitter(2.0)).toFixed(2),
+    pressureOut: +(basePressure - drop + jitter(3.0)).toFixed(2),
+    temperature: +(27.7 + jitter(2.5)).toFixed(2),
+    humidity:    +(33.7 + jitter(4.0)).toFixed(2),
   };
 }
 
