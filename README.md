@@ -43,7 +43,7 @@ ias_hack_main/
 │   ├── 01_isolation_forest/         # Anomaly detection (Isolation Forest)
 │   ├── 02_severity_classifier/      # Rule-based severity scoring
 │   ├── 03_leak_size_estimator/      # Linear regression for leak size
-│   ├── 04_acoustic_classifier/      # CNN for acoustic leak detection
+│   ├── 04_acoustic_classifier/      # Autoencoder for acoustic leak detection
 │   └── 05_predictive_forecast/      # Prophet/LSTM time-series forecasting
 ├── data/                            # Data generation and streaming
 │   ├── raw/                         # Generated sensor data (CSV)
